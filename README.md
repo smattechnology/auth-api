@@ -1,99 +1,93 @@
-Device & IP Geolocation API
+# Device & IP Geolocation API
 
-A FastAPI-based server that provides:
+A production-ready FastAPI service for accurate device identification and enriched IP geolocation. The API combines HTTP User-Agent parsing, Client Hints, IP2Location Lite and MaxMind GeoLite2 databases, and automatic logging to PostgreSQL to provide reliable device and location insights.
 
-Accurate device identification from HTTP requests (browser, OS, type, client hints).
+---
 
-Detailed IP geolocation using both IP2Location and GeoLite2 databases.
+## Features
 
-Automatic logging of devices and IPs in a PostgreSQL database.
+- Accurate device detection (desktop, mobile, tablet) including OS and browser names and versions.
+- Client Hints support (sec-ch-ua, sec-ch-ua-platform, sec-ch-ua-mobile) for improved detection.
+- Robust IP geolocation using both IP2Location-Lite and MaxMind GeoLite2 (Country, City, ASN).
+- Merged geolocation results with timezone formatting (e.g. Asia/Dhaka (+06:00)).
+- ASN lookup and organization name.
+- Automatic persistence of device and IP logs to PostgreSQL.
+- Async-ready with FastAPI and Uvicorn for high-performance deployments.
 
-Merged geolocation results with timezone formatting and ASN info.
 
-Features
+## Tech Stack
 
-Detects desktop, mobile, and tablet devices with OS and browser versions.
+- Python 3.11+
+- FastAPI
+- SQLAlchemy (async)
+- PostgreSQL (asyncpg)
+- IP2Location-Lite (.BIN)
+- MaxMind GeoLite2 (.mmdb)
+- pytz
+- Uvicorn
 
-Retrieves client IP and identifies real IP vs forwarded IP.
+---
 
-Provides rich geolocation info:
+## Quick Start
 
-Field	Description
-country_short	Country code (e.g., BD)
-country_long	Full country name
-region	State or subdivision
-city	City name
-latitude	Latitude
-longitude	Longitude
-timezone	Formatted as Asia/Dhaka (+06:00)
-asn	Autonomous System Number
-asn_org	Autonomous System Organization
+Clone the repository and create a virtual environment:
 
-Supports IP2Location Lite DB and MaxMind GeoLite2 databases for best accuracy.
-
-Stores IP logs and device information in the database automatically.
-
-Tech Stack
-
-Python 3.11+
-
-FastAPI for API framework
-
-SQLAlchemy for database ORM
-
-PostgreSQL as the database
-
-IP2Location-Lite BIN for geolocation
-
-GeoLite2 MMDBs (Country, City, ASN) for enriched location and ASN data
-
-Pytz for timezone parsing
-
-Uvicorn as ASGI server
-
-Installation
-git clone https://github.com/your-username/device-ip-api.git
-cd device-ip-api
+```bash
+git clone https://github.com/smattechnology/auth-api.git
+cd auth-api
 python -m venv venv
-source venv/bin/activate  # Linux / Mac
-venv\Scripts\activate     # Windows
+source venv/bin/activate   # Linux / macOS
+venv\Scripts\activate     # Windows (PowerShell)
 
 pip install -r requirements.txt
+```
 
-Setup
+### Configuration
 
-Download IP2Location Lite BIN:
+1. Download IP2Location Lite BIN:
+   - Place `IP2Location-Lite-DB11.BIN` in `app/geo/`
 
-Place IP2Location-Lite-DB11.BIN in app/geo/
+2. Download MaxMind GeoLite2 databases (place in `app/geo/`):
+   - `GeoLite2-Country.mmdb`
+   - `GeoLite2-City.mmdb`
+   - `GeoLite2-ASN.mmdb`
 
-Download MaxMind GeoLite2 DBs:
+3. Configure the database and environment variables. Example `.env`:
 
-GeoLite2-Country.mmdb
-
-GeoLite2-City.mmdb
-
-GeoLite2-ASN.mmdb
-
-Place all .mmdb files in app/geo/
-
-Configure Database:
-
-Update your .env file with PostgreSQL connection string:
-
+```env
 DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/dbname
+# Optional: additional config keys (LOG_LEVEL, GEO_DB_PATH, ...)
+```
 
-Usage
+### Run locally
 
-Run the API locally:
-
+```bash
 uvicorn app.main:app --reload
+```
 
-Sample Request
-GET /device-info
+The API will be available at `http://localhost:8000` by default.
+
+---
+
+## API
+
+### GET /device-info
+
+Returns detected device information and enriched geolocation for the incoming request IP.
+
+Sample request headers:
+
+```
+GET /device-info HTTP/1.1
 Host: localhost:8000
 User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) ...
+Sec-CH-UA: "Chromium";v="143"
+Sec-CH-UA-Platform: "Windows"
+```
 
-Sample Response
+Sample response:
+
+```json
 {
   "ip": "223.25.253.142",
   "country_short": "BD",
@@ -121,37 +115,64 @@ Sample Response
     }
   }
 }
+```
 
-Database Models
+---
 
-Device: stores client device info.
+## Geolocation Output Fields
 
-IPLog: stores IP address, geolocation, ASN, timezone, and device relationship.
+- `country_short`: Country ISO code (e.g., `BD`)
+- `country_long`: Full country name
+- `region`: State or subdivision
+- `city`: City name
+- `latitude`, `longitude`: Coordinates
+- `timezone`: Timezone with offset (e.g., `Asia/Dhaka (+06:00)`)
+- `asn`: Autonomous System Number
+- `asn_org`: Autonomous System Organization
 
-Development
+
+## Database Models
+
+- Device: stores parsed client device details (type, OS, browser, UA, client hints).
+- IPLog: stores IP address, resolved geolocation, ASN, timezone, and relationship to Device.
+
+---
+
+## Development
 
 Run migrations:
 
+```bash
 alembic upgrade head
-
+```
 
 Run tests:
 
+```bash
 pytest
+```
 
+Enable debug logging for geolocation/device detection by configuring logging in `app/geo`.
 
-Enable debug logging in app/geo to verify IP geolocation and device detection.
+---
 
-Contributing
+## Contributing
 
-Fork the repo
+Contributions are welcome — please follow the standard workflow:
 
-Create a feature branch
+1. Fork the repository.
+2. Create a feature branch: `git checkout -b feat/my-feature`.
+3. Commit your changes with meaningful messages.
+4. Push to your fork and open a Pull Request with a clear description.
 
-Commit changes with clear messages
+Please add tests and update documentation for any new behavior.
 
-Open a Pull Request
+---
 
-License
+## License
 
-MIT License – see LICENSE file.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
+
+---
+
+If you'd like, I can also add badges, API docs examples, or a Dockerfile + docker-compose setup for local development and testing.
